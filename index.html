@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOTION — motion laboratory</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230a0a0f' width='100' height='100'/><circle cx='50' cy='50' r='30' fill='none' stroke='%23ff4444' stroke-width='8'/></svg>">
+  <style>
+    /* ============================================
+       DESIGN TOKENS — animations.dev principles
+       ============================================ */
+    :root {
+      --bg: #08080c;
+      --bg-card: #111118;
+      --bg-card-hover: #16161f;
+      --border: #1e1e2a;
+      --text: #e8e8f0;
+      --text-dim: #6b6b80;
+      --accent: #ff4444;
+      --accent-glow: rgba(255,68,68,0.15);
+      --green: #44ff99;
+      --ease-out: cubic-bezier(0.2, 0, 0, 1);
+      --ease-in-out: cubic-bezier(0.52, 0.062, 0.64, 0.21);
+      --ease-breeze: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --t-fast: 0.15s;
+      --t-std: 0.22s;
+      --t-slow: 0.35s;
+      --t-reveal: 0.5s;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'IBM Plex Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    ::selection {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* ============================================
+       AMBIENT BACKGROUND BLOB
+       ============================================ */
+    .blob {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(255,68,68,0.06) 0%, transparent 70%);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: blob-drift 12s ease-in-out infinite alternate;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes blob-drift {
+      0%   { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+      50%  { transform: translate(-40%, -60%) scale(1.1) rotate(180deg); }
+      100% { transform: translate(-60%, -40%) scale(0.95) rotate(360deg); }
+    }
+
+    /* ============================================
+       LAYOUT
+       ============================================ */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ============================================
+       NAV
+       ============================================ */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(8, 8, 12, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      transform: translateY(-100%);
+      opacity: 0;
+      animation: slide-down 0.4s var(--ease-out) 0.2s forwards;
+    }
+
+    @keyframes slide-down {
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .nav-logo {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      transition: color var(--t-fast) var(--ease-out);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .nav-links a:hover {
+        color: var(--text);
+      }
+    }
+
+    /* ============================================
+       HERO
+       ============================================ */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+    }
+
+    .hero-label {
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 32px;
+      opacity: 0;
+      transform: translateY(16px);
+      animation: rise-in var(--t-reveal) var(--ease-out) 0.3s forwards;
+    }
+
+    .hero-title {
+      font-size: clamp(52px, 12vw, 120px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 0.9;
+      color: var(--text);
+      margin-bottom: 32px;
+    }
+
+    .hero-title .char {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(40px) rotateX(-40deg);
+      animation: char-reveal var(--t-reveal) var(--ease-out) forwards;
+    }
+
+    @keyframes char-reveal {
+      to { opacity: 1; transform: translateY(0) rotateX(0); }
+    }
+
+    .hero-title .char:nth-child(1)  { animation-delay: 0.4s; }
+    .hero-title .char:nth-child(2)  { animation-delay: 0.46s; }
+    .hero-title .char:nth-child(3)  { animation-delay: 0.52s; }
+    .hero-title .char:nth-child(4)  { animation-delay: 0.58s; }
+    .hero-title .char:nth-child(5)  { animation-delay: 0.64s; }
+    .hero-title .char:nth-child(6)  { animation-delay: 0.70s; }
+
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-dim);
+      max-width: 420px;
+      line-height: 1.7;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: rise-in var(--t-std) var(--ease-out) 0.9s forwards;
+    }
+
+    @keyframes rise-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      opacity: 0;
+      animation: fade-in var(--t-std) var(--ease-out) 1.4s forwards;
+    }
+
+    @keyframes fade-in {
+      to { opacity: 1; }
+    }
+
+    .scroll-hint .line {
+      width: 1px;
+      height: 40px;
+      background: linear-gradient(to bottom, var(--accent), transparent);
+      animation: scroll-line 2s ease-in-out 1.5s infinite;
+    }
+
+    @keyframes scroll-line {
+      0%   { transform: scaleY(0); transform-origin: top; opacity: 1; }
+      50%  { transform: scaleY(1); transform-origin: top; opacity: 1; }
+      51%  { transform: scaleY(1); transform-origin: bottom; }
+      100% { transform: scaleY(0); transform-origin: bottom; opacity: 0.3; }
+    }
+
+    /* ============================================
+       SECTION
+       ============================================ */
+    section {
+      padding: 100px 0;
+    }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .section-desc {
+      font-size: 14px;
+      color: var(--text-dim);
+      max-width: 480px;
+      line-height: 1.75;
+      margin-bottom: 56px;
+    }
+
+    /* ============================================
+       BUTTONS
+       ============================================ */
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 64px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      border: none;
+      transition:
+        transform var(--t-fast) var(--ease-out),
+        background var(--t-fast) var(--ease-out),
+        box-shadow var(--t-fast) var(--ease-out);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .btn:active {
+      transform: scale(0.97) !important;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .btn:hover {
+        transform: scale(1.03);
+      }
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .btn-primary:hover {
+        box-shadow: 0 0 24px var(--accent-glow), 0 0 48px var(--accent-glow);
+      }
+    }
+
+    .btn-primary:active {
+      transform: scale(0.97) !important;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .btn-ghost:hover {
+        border-color: var(--text-dim);
+        background: var(--bg-card);
+      }
+    }
+
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 16px;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .btn-icon:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+    }
+
+    /* ============================================
+       CARD GRID — staggered reveal on scroll
+       ============================================ */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 64px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      opacity: 0;
+      transform: translateY(24px);
+      transition:
+        transform var(--t-std) var(--ease-out),
+        opacity var(--t-std) var(--ease-out),
+        background var(--t-std) var(--ease-out),
+        border-color var(--t-std) var(--ease-out);
+    }
+
+    .card.visible {
+      animation: card-in var(--t-std) var(--ease-out) forwards;
+    }
+
+    .card:nth-child(1) { animation-delay: 0ms; }
+    .card:nth-child(2) { animation-delay: 60ms; }
+    .card:nth-child(3) { animation-delay: 120ms; }
+    .card:nth-child(4) { animation-delay: 180ms; }
+    .card:nth-child(5) { animation-delay: 240ms; }
+    .card:nth-child(6) { animation-delay: 300ms; }
+
+    @keyframes card-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .card:hover {
+        background: var(--bg-card-hover);
+        border-color: #2a2a3a;
+        transform: translateY(-4px);
+      }
+    }
+
+    .card:active {
+      transform: scale(0.98) !important;
+    }
+
+    .card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--accent-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 16px;
+      color: var(--accent);
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .card-body {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.65;
+    }
+
+    .card-tag {
+      display: inline-block;
+      margin-top: 14px;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      opacity: 0.8;
+    }
+
+    /* ============================================
+       MODAL
+       ============================================ */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 8, 12, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--t-std) var(--ease-out);
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px;
+      max-width: 440px;
+      width: 100%;
+      transform: scale(0.95) translateY(8px);
+      opacity: 0;
+      transition:
+        transform var(--t-std) var(--ease-out),
+        opacity var(--t-std) var(--ease-out);
+    }
+
+    .modal-backdrop.open .modal {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .modal-body {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+    }
+
+    .modal-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ============================================
+       TOAST
+       ============================================ */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: all;
+      max-width: 320px;
+      transform: translateX(120%);
+      transition: transform var(--t-std) var(--ease-out);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .toast.show {
+      transform: translateX(0);
+    }
+
+    .toast.hide {
+      transform: translateX(120%);
+    }
+
+    .toast-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--green);
+    }
+
+    .toast.hide .toast-dot {
+      background: var(--text-dim);
+    }
+
+    /* ============================================
+       TIMING DEMO
+       ============================================ */
+    .timing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 24px;
+      margin-bottom: 64px;
+    }
+
+    .timing-item {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .timing-bar-wrap {
+      height: 48px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .timing-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 5px;
+      transform-origin: left;
+      transform: scaleX(0);
+      width: 100%;
+    }
+
+    .timing-bar.play {
+      animation: bar-fill var(--dur) var(--ease-out) forwards;
+    }
+
+    @keyframes bar-fill {
+      to { transform: scaleX(1); }
+    }
+
+    .timing-label {
+      font-size: 12px;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .timing-label span:last-child {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ============================================
+       DIVIDER
+       ============================================ */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* ============================================
+       FOOTER
+       ============================================ */
+    footer {
+      padding: 48px 0;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+
+    footer span {
+      color: var(--accent);
+    }
+
+    /* ============================================
+       REDUCED MOTION
+       ============================================ */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.08s !important;
+      }
+      .hero-title .char {
+        opacity: 1;
+        transform: none;
+        animation: none;
+      }
+      .blob {
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient background -->
+  <div class="blob" aria-hidden="true"></div>
+
+  <!-- NAV -->
+  <nav role="navigation" aria-label="Main navigation">
+    <div class="nav-logo">MOTION</div>
+    <ul class="nav-links">
+      <li><a href="#components">Components</a></li>
+      <li><a href="#timing">Timing</a></li>
+      <li><a href="#principles">Principles</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <p class="hero-label">motion laboratory</p>
+    <h1 class="hero-title">
+      <span class="char">M</span><span class="char">O</span><span class="char">T</span><span class="char">I</span><span class="char">O</span><span class="char">N</span>
+    </h1>
+    <p class="hero-sub">
+      A minimal laboratory for tasteful web animation.<br>
+      Every transition follows Emil Kowalski's principles.
+    </p>
+    <div class="scroll-hint" aria-hidden="true">
+      <div class="line"></div>
+      <span>SCROLL</span>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- COMPONENTS -->
+    <section id="components">
+      <p class="section-label">01 — Components</p>
+      <h2 class="section-title">Interactive elements</h2>
+      <p class="section-desc">
+        Buttons, cards, modals, and toasts — each animated with purpose.
+        Hover states gate-checked for mobile. Press feedback on every clickable element.
+      </p>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="open-modal-btn">
+          Open Modal
+        </button>
+        <button class="btn btn-ghost" id="toast-btn">
+          Trigger Toast
+        </button>
+        <button class="btn btn-ghost" id="stagger-btn">
+          Reveal Cards
+        </button>
+      </div>
+
+      <div class="card-grid" id="card-grid">
+        <div class="card">
+          <div class="card-icon">↑</div>
+          <div class="card-title">Ease-Out Entrances</div>
+          <div class="card-body">Start fast, decelerate into place. Feels immediate and responsive — never sluggish.</div>
+          <span class="card-tag">150–250ms</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">↓</div>
+          <div class="card-title">Ease-In Exits</div>
+          <div class="card-body">Accelerate away from the frame. Faster than entrances. Exit 200ms vs Enter 300ms.</div>
+          <span class="card-tag">faster</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">◉</div>
+          <div class="card-title">Transform Only</div>
+          <div class="card-body">Only animate transform and opacity. GPU-accelerated. Zero layout thrash.</div>
+          <span class="card-tag">GPU</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">S</div>
+          <div class="card-title">Scale on Press</div>
+          <div class="card-body">Buttons scale to 0.97 on :active. Makes the UI feel physical and responsive.</div>
+          <span class="card-tag">physicality</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">◇</div>
+          <div class="card-title">No Scale from Zero</div>
+          <div class="card-body">Nothing appears from nothing. Start from scale(0.95) + opacity 0 for modals.</div>
+          <span class="card-tag">realism</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">⚡</div>
+          <div class="card-title">Staggered Reveals</div>
+          <div class="card-body">30–60ms between items. Never more than 100ms stagger. Limit to 3–7 elements.</div>
+          <span class="card-tag">orchestration</span>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- TIMING -->
+    <section id="timing">
+      <p class="section-label">02 — Timing</p>
+      <h2 class="section-title">The clock doesn't lie</h2>
+      <p class="section-desc">
+        Duration decisions follow frequency of use. Hover interactions (tens/day): barely animate.
+        Modals (occasional): standard duration. Never exceed 300ms for UI interactions.
+      </p>
+
+      <div class="timing-grid">
+        <div class="timing-item">
+          <div class="timing-bar-wrap">
+            <div class="timing-bar" style="--dur: 0.1s"> </div>
+          </div>
+          <div class="timing-label"><span>Micro-interaction</span><span>100ms</span></div>
+        </div>
+        <div class="timing-item">
+          <div class="timing-bar-wrap">
+            <div class="timing-bar" style="--dur: 0.15s"> </div>
+          </div>
+          <div class="timing-label"><span>Hover feedback</span><span>150ms</span></div>
+        </div>
+        <div class="timing-item">
+          <div class="timing-bar-wrap">
+            <div class="timing-bar" style="--dur: 0.22s"> </div>
+          </div>
+          <div class="timing-label"><span>Standard</span><span>220ms</span></div>
+        </div>
+        <div class="timing-item">
+          <div class="timing-bar-wrap">
+            <div class="timing-bar" style="--dur: 0.35s"> </div>
+          </div>
+          <div class="timing-label"><span>Complex transition</span><span>350ms</span></div>
+        </div>
+      </div>
+
+      <button class="btn btn-ghost" id="play-timing-btn">Play Timing Sequence</button>
+    </section>
+
+    <hr class="divider">
+
+    <!-- PRINCIPLES -->
+    <section id="principles">
+      <p class="section-label">03 — Principles</p>
+      <h2 class="section-title">Why it matters</h2>
+      <p class="section-desc">
+        The best animations are the ones you don't notice. Motion should make software feel
+        instantaneous and physical — not decorative. Taste is trained.
+      </p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">∞</div>
+          <div class="card-title">Invisible Motion</div>
+          <div class="card-body">Users notice the interface feels good — not that it's animated. That's the goal.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">⚖</div>
+          <div class="card-title">Purposeful Speed</div>
+          <div class="card-body">Animation should never make a user wait. If it slows interaction, cut the duration.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🌍</div>
+          <div class="card-title">Physics-Based</div>
+          <div class="card-body">Motion mimics real-world physics — acceleration, deceleration, gravity.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">♿</div>
+          <div class="card-title">Reduced Motion</div>
+          <div class="card-body">prefers-reduced-motion respected. Movement stops, opacity transitions remain.</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <button class="btn btn-icon modal-close" id="close-modal-btn" aria-label="Close modal">✕</button>
+      <h3 class="modal-title" id="modal-title">Modal with Scale Entrance</h3>
+      <p class="modal-body">
+        This modal starts at <code>scale(0.95)</code> with <code>opacity: 0</code>, not <code>scale(0)</code>.
+        Nothing in reality appears from nothing. The 220ms ease-out makes it feel like it was
+        always there — just revealed.
+      </p>
+      <div class="modal-meta">
+        <button class="btn btn-primary" id="modal-confirm-btn">Got it</button>
+        <button class="btn btn-ghost" id="modal-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Built on <span>animations.dev</span> principles — Emil Kowalski</p>
+  </footer>
+
+  <script>
+    // ============================================
+    // CARD INTERSECTION OBSERVER
+    // ============================================
+    const cardGrid = document.getElementById('card-grid');
+    const cards = cardGrid.querySelectorAll('.card');
+    let cardsRevealed = false;
+
+    const cardObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !cardsRevealed) {
+          cardsRevealed = true;
+          cards.forEach(card => card.classList.add('visible'));
+        }
+      });
+    }, { threshold: 0.15 });
+
+    cardObserver.observe(cardGrid);
+
+    document.getElementById('stagger-btn').addEventListener('click', () => {
+      cardsRevealed = false;
+      cards.forEach(card => card.classList.remove('visible'));
+      requestAnimationFrame(() => {
+        cards.forEach(card => card.classList.add('visible'));
+        cardsRevealed = true;
+      });
+    });
+
+    // ============================================
+    // MODAL
+    // ============================================
+    const modal = document.getElementById('modal');
+    const openModalBtn = document.getElementById('open-modal-btn');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const confirmBtn = document.getElementById('modal-confirm-btn');
+    const cancelBtn = document.getElementById('modal-cancel-btn');
+
+    function openModal() {
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      confirmBtn.focus();
+    }
+
+    function closeModal() {
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+      openModalBtn.focus();
+    }
+
+    openModalBtn.addEventListener('click', openModal);
+    closeModalBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    confirmBtn.addEventListener('click', () => {
+      closeModal();
+      showToast('Modal confirmed — motion principles applied.', 3000);
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+    });
+
+    // ============================================
+    // TOAST
+    // ============================================
+    function showToast(message, duration = 3000) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `<div class="toast-dot"></div><span>${message}</span>`;
+      container.appendChild(toast);
+
+      // Trigger enter
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => toast.classList.add('show'));
+      });
+
+      // Trigger exit
+      setTimeout(() => {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+        setTimeout(() => toast.remove(), 250);
+      }, duration);
+    }
+
+    document.getElementById('toast-btn').addEventListener('click', () => {
+      showToast('Motion principles: ease-out for entrances.', 3000);
+    });
+
+    // ============================================
+    // TIMING BAR SEQUENCE
+    // ============================================
+    document.getElementById('play-timing-btn').addEventListener('click', () => {
+      const bars = document.querySelectorAll('.timing-bar');
+      bars.forEach(bar => {
+        bar.classList.remove('play');
+        void bar.offsetWidth; // reflow to restart animation
+      });
+      requestAnimationFrame(() => {
+        bars.forEach((bar, i) => {
+          setTimeout(() => bar.classList.add('play'), i * 120);
+        });
+      });
+    });
+
+    // ============================================
+    // SCROLL REVEAL FOR PRINCIPLES SECTION
+    // ============================================
+    const sections = document.querySelectorAll('section');
+    const sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, { threshold: 0.1 });
+
+    sections.forEach(section => {
+      section.style.opacity = '0';
+      section.style.transform = 'translateY(20px)';
+      section.style.transition = 'opacity 0.5s cubic-bezier(0.2,0,0,1), transform 0.5s cubic-bezier(0.2,0,0,1)';
+      sectionObserver.observe(section);
+    });
+
+    // Auto-reveal first section
+    document.querySelector('#components').style.opacity = '1';
+    document.querySelector('#components').style.transform = 'translateY(0)';
+  </script>
+
+</body>
+</html>
